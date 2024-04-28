@@ -105,8 +105,13 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   /* TODO INCREASE THE LIMIT
    * inc_vma_limit(caller, vmaid, inc_sz)
    */
-  inc_vma_limit(caller, vmaid, inc_sz);
-
+  if(old_sbrk + size > cur_vma->vm_end){
+      if(inc_ma_limit(caller, vmaid, inc_sz) < 0){
+          printf( "Cannot increase the vm limit!\n");
+          return -1;
+      }
+  }
+  cur_vma->sbrk += size;
   /*Successful increase limit */
   caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
   caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
@@ -125,15 +130,18 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
  */
 int __free(struct pcb_t *caller, int vmaid, int rgid)
 {
-  struct vm_rg_struct rgnode;
+  struct vm_rg_struct* rgnode;
 
   if(rgid < 0 || rgid > PAGING_MAX_SYMTBL_SZ)
     return -1;
 
   /* TODO: Manage the collect freed region to freerg_list */
+  rgnode = (get_symrg_byid(caller->mm, rgid));
 
   /*enlist the obsoleted memory region */
-  enlist_vm_freerg_list(caller->mm, rgnode);
+  enlist_vm_freerg_list(caller->mm, *rgnode);
+  rgnode->rg_start = rgnode->rg_end = -1;
+  rgnode->rg_next = NULL;
 
   return 0;
 }
@@ -176,19 +184,53 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
   if (!PAGING_PAGE_PRESENT(pte))
   { /* Page is not online, make it actively living */
     int vicpgn, swpfpn; 
-    //int vicfpn;
-    //uint32_t vicpte;
+    int vicfpn;
+    uint32_t vicpte;
 
-    int tgtfpn = PAGING_SWP(pte);//the target frame storing our variable
-
+    // int tgtfpn = PAGING_SWP(pte);//the target frame storing our variable
+    int tgtfpn = PAGING_SWPOFF(pte);
+    int tgtswp_type = PAGING_SWPTYP(pte);
     /* TODO: Play with your paging theory here */
     /* Find victim page */
-    find_victim_page(caller->mm, &vicpgn);
-
+    if(find_victim_page(caller->mm, &vicpgn) < 0){
+      return -1;
+    }
+    while(vicpgn == pgn){
+      if(find_victim_page(caller->mm, &vicpgn) < 0){
+        return -1;
+      }
+    }
+    vicpte = caller->mm->pgd[vicpgn];
+    vicfpn = PAGING_FPN(vicpte);
+    // idx for swap
+    int i = 0;
+    struct memphy_struct * mswp = (struct memphy_struct*)caller->mswp;
+    for(int i = 0; i < PAGING_MAX_MMSWP; i++){
+      if(mswp + i == caller->active_mswp){
+        break;
+      }
+    }
     /* Get free frame in MEMSWP */
-    MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
+    if(MEMPHY_get_freefp(caller->active_mswp, &swpfpn) < 0){
+      struct memphy_struct** mswpit = caller->mswp;
+      for(int i = 0; i < PAGING_MAX_MMSWP; i++){
+        struct memphy_struct* tmp_swp = (struct memphy_struct*)(mswpit);
+        if(MEMPHY_get_freefp(tmp_swp + i, &swpfpn) == 0){
+          __swap_cp_page(caller->mram, vicfpn, tmp_swp+i, swpfpn);
+          caller->active_mswp = tmp_swp+i;
+          break;
+        }
+      }
+    }
+    else {
+      __swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
+      MEMPHY_put_freefp(mswp + tgtswp_type, tgtfpn);
+      pte_set_swap(&caller->mm->pgd[vicfpn], i, swpfpn);
+      pte_set_fpn(&caller->mm->pgd[pgn], vicfpn);
+      enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
+    }
 
-
+    *fpn = PAGING_FPN(pte);
     /* Do swap frame from MEMRAM to MEMSWP and vice versa*/
     /* Copy victim frame to swap */
     //__swap_cp_page();
@@ -200,7 +242,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 
     /* Update its online status of the target page */
     //pte_set_fpn() & mm->pgd[pgn];
-    pte_set_fpn(&pte, tgtfpn);
+    // pte_set_fpn(&pte, tgtfpn);
 
 #ifdef CPU_TLB
     /* Update its online status of TLB (if needed) */
@@ -404,10 +446,20 @@ struct vm_rg_struct* get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
  */
 int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int vmaend)
 {
-  //struct vm_area_struct *vma = caller->mm->mmap;
+  struct vm_area_struct *vma = caller->mm->mmap;
 
   /* TODO validate the planned memory area is not overlapped */
-
+  while(vma != NULL){
+    if(vmaid != vma->vm_id){
+      if(OVERLAP(vmastart, vmaend, vma->vm_start, vma->vm_end)){
+        if((vmastart != vma->vm_end || vmaend == vma->vm_start) &&
+        (vmastart == vma->vm_end || vmaend != vma->vm_start)){
+          return -1;
+        }
+      }
+    }
+    return 0;
+  }
   return 0;
 }
 
@@ -450,9 +502,23 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
 int find_victim_page(struct mm_struct *mm, int *retpgn) 
 {
   struct pgn_t *pg = mm->fifo_pgn;
-
+  if(!pg){
+    return -1;
+  }
   /* TODO: Implement the theorical mechanism to find the victim page */
-
+  while(pg->pg_next && pg->pg_next->pg_next){
+    pg = pg->pg_next;
+  }
+  if(pg->pg_next){
+    *retpgn = pg->pg_next->pgn;
+    free(pg->pg_next);
+    pg->pg_next = NULL;
+  }
+  else{
+    *retpgn = pg->pgn;
+    free(pg);
+    mm->fifo_pgn = pg = NULL;
+  }
   free(pg);
 
   return 0;
