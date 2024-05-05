@@ -68,6 +68,10 @@ struct framephy_struct {
    struct mm_struct* owner;
 };
 
+struct tlbEntry {
+   int pid, pgn, addr; //pid, pgnum and the address of value in storage
+};
+
 struct memphy_struct {
    /* Basic field of data and size */
    BYTE *storage;
@@ -76,6 +80,7 @@ struct memphy_struct {
    /* Sequential device fields */ 
    int rdmflg;
    int cursor;
+   struct tlbEntry tlbcache;
 
    /* Management structure */
    struct framephy_struct *free_fp_list;

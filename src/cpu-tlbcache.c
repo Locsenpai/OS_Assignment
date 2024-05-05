@@ -51,6 +51,17 @@ int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
 	*      cache line by employing:
 	*      direct mapped, associated mapping etc.
 	*/
+   if (mp == NULL || pgnum < 0 || pgnum >= mp->maxsz) return -1; 
+
+    int addr = pgnum * PAGE_SIZE;
+
+    TLBMEMPHY_write(mp, addr, value);
+
+    mp->tlbcache.pid = pid;
+    mp->tlbcache.addr = addr;
+    mp->tlbcache.pgn = pgnum;
+
+    return 0;
 }
 
 /*
