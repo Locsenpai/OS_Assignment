@@ -32,9 +32,9 @@
 int tlb_cache_read(struct memphy_struct * mp, int pid, int pgnum, BYTE value)
 {
    /* TODO: the identify info is mapped to 
-    *      cache line by employing:
-    *      direct mapped, associated mapping etc.
-    */
+	*      cache line by employing:
+	*      direct mapped, associated mapping etc.
+	*/
    return 0;
 }
 
@@ -48,10 +48,9 @@ int tlb_cache_read(struct memphy_struct * mp, int pid, int pgnum, BYTE value)
 int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
 {
    /* TODO: the identify info is mapped to 
-    *      cache line by employing:
-    *      direct mapped, associated mapping etc.
-    */
-   return 0;
+	*      cache line by employing:
+	*      direct mapped, associated mapping etc.
+	*/
 }
 
 /*
@@ -63,7 +62,7 @@ int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
 int TLBMEMPHY_read(struct memphy_struct * mp, int addr, BYTE *value)
 {
    if (mp == NULL)
-     return -1;
+	 return -1;
 
    /* TLB cached is random access by native */
    *value = mp->storage[addr];
@@ -81,7 +80,7 @@ int TLBMEMPHY_read(struct memphy_struct * mp, int addr, BYTE *value)
 int TLBMEMPHY_write(struct memphy_struct * mp, int addr, BYTE data)
 {
    if (mp == NULL)
-     return -1;
+	 return -1;
 
    /* TLB cached is random access by native */
    mp->storage[addr] = data;
@@ -98,9 +97,16 @@ int TLBMEMPHY_write(struct memphy_struct * mp, int addr, BYTE data)
 int TLBMEMPHY_dump(struct memphy_struct * mp)
 {
    /*TODO dump memphy contnt mp->storage 
-    *     for tracing the memory content
-    */
+	*     for tracing the memory content
+	*/
+	/////////CHECK LATER//////////////
+   if(mp==NULL) return -1;
+   printf("Memory content [pos, content] at: %p\n",mp);
+   // Display the content of the memory
+   for(int i=0;i<mp->maxsz;++i)
+	  printf("%d %02X ",i, mp->storage[i]);
 
+   printf("\n");
    return 0;
 }
 
