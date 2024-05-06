@@ -80,7 +80,8 @@ struct memphy_struct {
    /* Sequential device fields */ 
    int rdmflg;
    int cursor;
-   struct tlbEntry tlbcache;
+   struct tlbEntry *tlbcache;
+   int tlbsz;
 
    /* Management structure */
    struct framephy_struct *free_fp_list;
