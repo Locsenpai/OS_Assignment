@@ -127,16 +127,61 @@ int vmap_page_range(struct pcb_t *caller, // process call
 int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struct** frm_lst)
 {
 	int pgit, fpn;
-	//struct framephy_struct *newfp_str;
+	struct framephy_struct *newfp_str = NULL;
 
+	///////////////CHECK LATER////////////////////
 	for(pgit = 0; pgit < req_pgnum; pgit++)
 	{
 		if(MEMPHY_get_freefp(caller->mram, &fpn) == 0)
-	 {
-		 
-	 } else {  // ERROR CODE of obtaining somes but not enough frames
-	 } 
- }
+	 	{
+			struct framephy_struct *newfp = malloc(sizeof(struct framephy_struct));
+			newfp->fpn = fpn;
+			newfp->owner = caller->mm;
+			newfp->fp_next = caller->mram->used_fp_list;
+			caller->mram->used_fp_list = newfp;
+			newfp_str = newfp;
+			
+	 	} else {  // ERROR CODE of obtaining somes but not enough frames
+			int victim_fpn, victim_pgn, victim_pte;
+			int swpfpn = -1;
+			
+			if(find_victim_page(caller->mm,&victim_pgn) < 0) return -1;
+			victim_pte = caller->mm->pgd[victim_pgn];
+			victim_fpn = PAGING_FPN(victim_pte);
+			
+			struct framephy_struct *newfp = malloc(sizeof(struct framephy_struct));
+			newfp->fpn = victim_fpn;
+			newfp->owner = caller->mm;
+			newfp->fp_next = newfp_str;
+
+			int i = 0;
+			if(MEMPHY_get_freefp(caller->active_mswp, &swpfpn) == 0 )
+			{
+				//copy content of victim frame to swap memory space
+				__swap_cp_page(caller->mram, victim_fpn, caller->active_mswp, swpfpn);
+				struct memphy_struct* mswp = caller->mswp;
+				for(i = 0; i<PAGING_MAX_MMSWP;++i) if(mswp + 1 == caller->active_mswp) break;
+			}
+			else {
+				struct memphy_struct* mswp = caller->mswp;
+				swpfpn = -1;
+				for(int i=0;i<PAGING_MAX_MMSWP; ++i)
+				{
+					if(MEMPHY_get_freefp(mswp+1, &swpfpn) == 0)
+					{
+						//copy content of victim frame to swap memory space
+						__swap_cp_page(caller->mram, victim_fpn, mswp + 1, swpfpn);
+						break;
+					}
+				}
+			}
+			if(swpfpn == -1) return -3000;
+
+			pte_set_swap(&caller->mm->pgd[victim_fpn],i, swpfpn);
+	 	} 
+ 	}
+
+	*frm_lst = newfp_str;
 
 	return 0;
 }
