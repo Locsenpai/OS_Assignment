@@ -57,14 +57,14 @@ int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
 
    TLBMEMPHY_write(mp, addr, value);
 
-   if(mp->tlbsz>=mp->maxsz) mp->tlbsz = 0;
-   int sz = mp->tlbsz;
+   if(mp->tlbnum>= mp->maxsz) mp->tlbnum = 0;
+   int sz = mp->tlbnum;
 
    mp->tlbcache[sz].pid = pid;
    mp->tlbcache[sz].addr = addr;
    mp->tlbcache[sz].pgn = pgnum;
 
-   ++mp->tlbsz;
+   ++mp->tlbnum;
    return 0;
 }
 
@@ -135,7 +135,7 @@ int init_tlbmemphy(struct memphy_struct *mp, int max_size)
    mp->maxsz = max_size;
 
    mp->tlbcache = (struct tlbEntry *)malloc(max_size*sizeof(struct tlbEntry));
-   mp->tlbsz = 0;
+   mp->tlbnum = 0;
 
    mp->rdmflg = 1;
 

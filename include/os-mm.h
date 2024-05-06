@@ -81,7 +81,7 @@ struct memphy_struct {
    int rdmflg;
    int cursor;
    struct tlbEntry *tlbcache;
-   int tlbsz;
+   int tlbnum;
 
    /* Management structure */
    struct framephy_struct *free_fp_list;
