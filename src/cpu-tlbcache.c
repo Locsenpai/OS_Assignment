@@ -51,17 +51,21 @@ int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
 	*      cache line by employing:
 	*      direct mapped, associated mapping etc.
 	*/
-   if (mp == NULL || pgnum < 0 || pgnum >= mp->maxsz) return -1; 
+   if (mp == NULL || pgnum < 0) return -1; 
 
-    int addr = pgnum * PAGE_SIZE;
+   int addr = pgnum * PAGE_SIZE;
 
-    TLBMEMPHY_write(mp, addr, value);
+   TLBMEMPHY_write(mp, addr, value);
 
-    mp->tlbcache.pid = pid;
-    mp->tlbcache.addr = addr;
-    mp->tlbcache.pgn = pgnum;
+   if(mp->tlbsz>=mp->maxsz) mp->tlbsz = 0;
+   int sz = mp->tlbsz;
 
-    return 0;
+   mp->tlbcache[sz].pid = pid;
+   mp->tlbcache[sz].addr = addr;
+   mp->tlbcache[sz].pgn = pgnum;
+
+   ++mp->tlbsz;
+   return 0;
 }
 
 /*
@@ -129,6 +133,9 @@ int init_tlbmemphy(struct memphy_struct *mp, int max_size)
 {
    mp->storage = (BYTE *)malloc(max_size*sizeof(BYTE));
    mp->maxsz = max_size;
+
+   mp->tlbcache = (struct tlbEntry *)malloc(max_size*sizeof(struct tlbEntry));
+   mp->tlbsz = 0;
 
    mp->rdmflg = 1;
 
