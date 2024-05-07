@@ -29,13 +29,29 @@
  *  @pgnum: page number
  *  @value: obtained value
  */
-int tlb_cache_read(struct memphy_struct * mp, int pid, int pgnum, BYTE value)
+int tlb_cache_read(struct memphy_struct * mp, int pid, int pgnum, int* value)
 {
    /* TODO: the identify info is mapped to 
     *      cache line by employing:
     *      direct mapped, associated mapping etc.
     */
-   return 0;
+    if (mp == NULL || pgnum < 0 || pgnum >= mp->maxsz)
+        return -1; 
+     int checked_tlb_read = 0;
+    for (int i = 0; i < mp->maxsz; i++) {
+        if (mp->tlbcache[i].pid == pid && mp->tlbcache[i].pgn == pgnum) {
+            *value = mp->tlbcache[i].addr; 
+            checked_tlb_read = 1;
+           break;
+        }
+    }
+
+    int addr = pgnum * PAGE_SIZE;
+    if (!checked_tlb_read){
+    TLBMEMPHY_read(mp, addr, value);
+       return -1;
+    }
+    return 0; 
 }
 
 /*
