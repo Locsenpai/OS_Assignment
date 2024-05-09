@@ -103,7 +103,7 @@ int vmap_page_range(struct pcb_t *caller, // process call
 	for(pgit = 0; pgit < pgnum; pgit++)
 	{
 		fpit = fpit->fp_next;
-		pgn = PAGING_PGN(addr + pgit*PAGING_PAGESZ);
+		pgn = PAGING_PGN( (addr + pgit*PAGING_PAGESZ) );
 		if(fpit)
 		{
 			pte_set_fpn(&(caller->mm->pgd[pgn]),fpit->fpn);
@@ -159,11 +159,11 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
 			{
 				//copy content of victim frame to swap memory space
 				__swap_cp_page(caller->mram, victim_fpn, caller->active_mswp, swpfpn);
-				struct memphy_struct* mswp = caller->mswp;
+				struct memphy_struct* mswp = (struct memphy_struct*) caller->mswp;
 				for(i = 0; i<PAGING_MAX_MMSWP;++i) if(mswp + 1 == caller->active_mswp) break;
 			}
 			else {
-				struct memphy_struct* mswp = caller->mswp;
+				struct memphy_struct* mswp = (struct memphy_struct*) caller->mswp;
 				swpfpn = -1;
 				for(int i=0;i<PAGING_MAX_MMSWP; ++i)
 				{

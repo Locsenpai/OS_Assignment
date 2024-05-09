@@ -19,6 +19,7 @@
 
 #include "mm.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 #define init_tlbcache(mp,sz,...) init_memphy(mp, sz, (1, ##__VA_ARGS__))
 
@@ -29,13 +30,26 @@
  *  @pgnum: page number
  *  @value: obtained value
  */
-int tlb_cache_read(struct memphy_struct * mp, int pid, int pgnum, BYTE value)
+int tlb_cache_read(struct memphy_struct *mp, int pid, int pgnum, BYTE *value)
 {
-   /* TODO: the identify info is mapped to 
-	*      cache line by employing:
-	*      direct mapped, associated mapping etc.
-	*/
-   return 0;
+    /* TODO: the identify info is mapped to 
+     *      cache line by employing:
+     *      direct mapped, associated mapping etc.
+     */
+   if (mp == NULL || pgnum < 0) return -1;
+
+   int addr = pgnum * PAGE_SIZE;
+   int i;
+
+   // Tìm kiếm trong cache
+   for (i = 0; i < mp->maxsz; i++) {
+      if(mp->tlbcache) {
+         if (mp->tlbcache[i].pgn == pgnum && mp->tlbcache[i].pid == pid && mp->tlbcache[i].addr == addr) {
+            if(TLBMEMPHY_read(mp, mp->tlbcache[i].addr, value) == 0) return 0;
+         }
+      }
+   }
+   return -1;
 }
 
 /*
