@@ -155,20 +155,16 @@ int tlbread(struct pcb_t * proc, uint32_t source,
  *@destination: index of destination register
  *@offset: destination address = [destination] + [offset]
  */
-int tlbwrite(struct pcb_t * proc, BYTE data,
+int tlbwrite(struct pcb_t * proc, int data,
              uint32_t destination, uint32_t offset)
 {
   int val;
-  BYTE frmnum = -1;
+  int frmnum = -1;
 
   /* TODO retrieve TLB CACHED frame num of accessing page(s))*/
   /* by using tlb_cache_read()/tlb_cache_write()
   frmnum is return value of tlb_cache_read/write value*/
-
-  struct vm_rg_struct *currg = get_symrg_byid(proc->mm, destination);
-  int pgn = PAGING_PGN( (currg->rg_start + offset) );
-  //int off = PAGING_OFFST( (currg->rg_start + offset) );
-  tlb_cache_read(proc->tlb, proc->pid, pgn, &frmnum);
+  frmnum = tlb_cache_read(proc->tlb, proc->pid, destination + offset, &data);
 
 #ifdef IODUMP
   if (frmnum >= 0)
@@ -183,17 +179,14 @@ int tlbwrite(struct pcb_t * proc, BYTE data,
   MEMPHY_dump(proc->mram);
 #endif
 
+  val = __write(proc, 0, destination, offset, data);
+
   /* TODO update TLB CACHED with frame num of recent accessing page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/
-  if (frmnum >= 0) {
-    return 0;
-  }
-  // Not in TLB
-  val = __write(proc, 0, destination, offset, data);
-  if (val == 0) {
-    tlbwrite(proc, data, destination, offset); // restart operation
-  }
+  tlb_cache_write(proc->tlb, proc->pid, destination + offset, val);
+
   return val;
 }
+
 
 //#endif
