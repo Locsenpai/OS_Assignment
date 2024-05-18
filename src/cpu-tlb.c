@@ -62,7 +62,7 @@ int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
     uint32_t page_start = addr / PAGE_SIZE;
     for (uint32_t i = 0; i < num_pages; i++) 
     {
-        tlb_cache_write(proc->tlb, proc->pid, page_start + i, NULL);
+        tlb_cache_write(proc->tlb, proc->pid, page_start + i, '\0');
     }
   }
   return val;
@@ -114,7 +114,7 @@ int tlbread(struct pcb_t * proc, uint32_t source,
   /* TODO retrieve TLB CACHED frame num of accessing page(s)*/
   /* by using tlb_cache_read()/tlb_cache_write()*/
   /* frmnum is return value of tlb_cache_read/write value*/
-	int pgn = PAGING_PGN(proc->regs[source] + offset);
+	int pgn = PAGING_PGN((proc->regs[source] + offset));
   frmnum = tlb_cache_read(proc->tlb, proc->pid, pgn, &data);
 
 #ifdef IODUMP
@@ -155,8 +155,7 @@ int tlbread(struct pcb_t * proc, uint32_t source,
  *@destination: index of destination register
  *@offset: destination address = [destination] + [offset]
  */
-int tlbwrite(struct pcb_t * proc, int data,
-             uint32_t destination, uint32_t offset)
+int tlbwrite(struct pcb_t * proc, BYTE data, uint32_t destination, uint32_t offset)
 {
   int val;
   int frmnum = -1;
