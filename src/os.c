@@ -16,6 +16,7 @@ static int done = 0;
 
 #ifdef CPU_TLB
 static int tlbsz;
+struct memphy_struct tlb;
 #endif
 
 #ifdef MM_PAGING
@@ -122,6 +123,9 @@ static void * ld_routine(void * args) {
 		while (current_time() < ld_processes.start_time[i]) {
 			next_slot(timer_id);
 		}
+#ifdef CPU_TLB
+		proc->tlb = &tlb;
+#endif
 #ifdef MM_PAGING
 		proc->mm = malloc(sizeof(struct mm_struct));
 		init_mm(proc->mm, proc);
@@ -239,8 +243,6 @@ int main(int argc, char * argv[]) {
 	struct timer_id_t * ld_event = attach_event();
 	start_timer();
 #ifdef CPU_TLB
-	struct memphy_struct tlb;
-
 	init_tlbmemphy(&tlb, tlbsz);
 #endif
 
