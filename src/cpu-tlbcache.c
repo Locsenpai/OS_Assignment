@@ -69,16 +69,25 @@ int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
 
    int addr = pgnum * PAGE_SIZE;
 
-   TLBMEMPHY_write(mp, addr, value);
-
    if(mp->tlbnum>= mp->maxsz) mp->tlbnum = 0;
    int sz = mp->tlbnum;
+   int i=0;
+
+   for(i = 0; i<mp->tlbnum;++i){
+      if(mp->tlbcache) {
+         if (mp->tlbcache[i].pgn == pgnum && mp->tlbcache[i].pid == pid && mp->tlbcache[i].addr == addr) {
+            sz = i;
+            break;
+         }
+      }
+   }
 
    mp->tlbcache[sz].pid = pid;
    mp->tlbcache[sz].addr = addr;
    mp->tlbcache[sz].pgn = pgnum;
+   TLBMEMPHY_write(mp, addr, value);
 
-   ++mp->tlbnum;
+   if(sz == mp->tlbnum)  ++mp->tlbnum;
    return 0;
 }
 
@@ -133,10 +142,11 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
    file = fopen("TLB_status.txt", "w");
    fprintf(file, "Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
-   for(int i=0;i<mp->maxsz;++i)
-	  fprintf(file, "%d %02X ",i, mp->storage[i]);
+   for(int i=0;i<mp->tlbnum;++i)
+	  fprintf(file, "[%d, %02X] ",i, mp->storage[i]);
 
-   fprintf(file, "\n");
+   fprintf(file, "\n\n");
+   fclose(file);
 #else
    printf("Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory

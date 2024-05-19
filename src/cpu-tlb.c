@@ -6,7 +6,6 @@
  * a personal to use and modify the Licensed Source Code for 
  * the sole purpose of studying during attending the course CO2018.
  */
-//#ifdef CPU_TLB
 /*
  * CPU TLB
  * TLB module cpu/cpu-tlb.c
@@ -15,6 +14,8 @@
 #include "mm.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
+#ifdef CPU_TLB
 
 int tlb_change_all_page_tables_of(struct pcb_t *proc,  struct memphy_struct * mp)
 {
@@ -40,6 +41,8 @@ int tlb_flush_tlb_of(struct pcb_t *proc, struct memphy_struct * mp)
       mp->tlbcache[i].addr = -1;
     }
   }
+  mp->tlbnum = 0;
+
   return 0;
 }
 
@@ -116,7 +119,7 @@ int tlbread(struct pcb_t * proc, uint32_t source,
   /* frmnum is return value of tlb_cache_read/write value*/
 	int pgn = PAGING_PGN((proc->regs[source] + offset));
   frmnum = tlb_cache_read(proc->tlb, proc->pid, pgn, &data);
-
+  usleep(10);
 #ifdef IODUMP
   if (frmnum >= 0)
   {
@@ -130,7 +133,7 @@ int tlbread(struct pcb_t * proc, uint32_t source,
 #ifdef PAGETBL_DUMP
   print_pgtbl(proc, 0, -1); //print max TBL
 #endif
-  MEMPHY_dump(proc->mram);
+  TLBMEMPHY_dump(proc->tlb);
 #endif
 
   int val = __read(proc, 0, source, offset, &data);
@@ -164,7 +167,7 @@ int tlbwrite(struct pcb_t * proc, BYTE data, uint32_t destination, uint32_t offs
   /* by using tlb_cache_read()/tlb_cache_write()
   frmnum is return value of tlb_cache_read/write value*/
   frmnum = tlb_cache_read(proc->tlb, proc->pid, destination + offset, &data);
- 
+  usleep(100);
 #ifdef IODUMP
   if (frmnum >= 0)
     printf("TLB hit at write region=%d offset=%d value=%d\n",
@@ -175,7 +178,7 @@ int tlbwrite(struct pcb_t * proc, BYTE data, uint32_t destination, uint32_t offs
 #ifdef PAGETBL_DUMP
   print_pgtbl(proc, 0, -1); //print max TBL
 #endif
-  MEMPHY_dump(proc->mram);
+  TLBMEMPHY_dump(proc->tlb);
 #endif
 
   val = __write(proc, 0, destination, offset, data);
@@ -187,4 +190,4 @@ int tlbwrite(struct pcb_t * proc, BYTE data, uint32_t destination, uint32_t offs
 }
 
 
-//#endif
+#endif

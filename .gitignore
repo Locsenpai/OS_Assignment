@@ -2,3 +2,4 @@ obj
 os
 .vscode
 RAM_status.txt
+TLB_status.txt

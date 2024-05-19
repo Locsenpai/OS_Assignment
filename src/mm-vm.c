@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
 
 // static pthread_mutex_t mtx_lock;
 
@@ -296,6 +297,7 @@ int pgread(
   int val = __read(proc, 0, source, offset, &data);
 
   destination = (uint32_t) data;
+  usleep(100);
 #ifdef IODUMP
   printf("read region=%d offset=%d value=%d\n", source, offset, data);
 #ifdef PAGETBL_DUMP
@@ -336,6 +338,7 @@ int pgwrite(
 		uint32_t destination, // Index of destination register
 		uint32_t offset)
 {
+  usleep(10);
 #ifdef IODUMP
   printf("write region=%d offset=%d value=%d\n", destination, offset, data);
 #ifdef PAGETBL_DUMP
