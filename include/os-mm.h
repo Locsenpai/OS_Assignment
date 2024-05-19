@@ -69,7 +69,8 @@ struct framephy_struct {
 };
 
 struct tlbEntry {
-   int pid, pgn, addr; //pid, pgnum and the address of value in storage
+   int pid, pgn; //pid, pgnum and the address of value in storage
+   BYTE val;
 };
 
 struct memphy_struct {

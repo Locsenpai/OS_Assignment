@@ -38,14 +38,14 @@ int tlb_cache_read(struct memphy_struct *mp, int pid, int pgnum, BYTE *value)
      */
    if (mp == NULL || pgnum < 0) return -1;
 
-   int addr = pgnum * PAGE_SIZE;
    int i;
 
    // Tìm kiếm trong cache
-   for (i = 0; i < mp->maxsz; i++) {
+   for (i = 0; i < mp->tlbnum; i++) {
       if(mp->tlbcache) {
-         if (mp->tlbcache[i].pgn == pgnum && mp->tlbcache[i].pid == pid && mp->tlbcache[i].addr == addr) {
-            if(TLBMEMPHY_read(mp, mp->tlbcache[i].addr, value) == 0) return 0;
+         if (mp->tlbcache[i].pgn == pgnum && mp->tlbcache[i].pid == pid) {
+            *value = mp->tlbcache[i].val;
+            return 0;
          }
       }
    }
@@ -67,15 +67,13 @@ int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
 	*/
    if (mp == NULL || pgnum < 0) return -1; 
 
-   int addr = pgnum * PAGE_SIZE;
-
    if(mp->tlbnum>= mp->maxsz) mp->tlbnum = 0;
    int sz = mp->tlbnum;
    int i=0;
 
-   for(i = 0; i<mp->maxsz;++i){
+   for(i = 0; i<mp->tlbnum;++i){
       if(mp->tlbcache) {
-         if (mp->tlbcache[i].pgn == pgnum && mp->tlbcache[i].pid == pid && mp->tlbcache[i].addr == addr) {
+         if (mp->tlbcache[i].pgn == pgnum && mp->tlbcache[i].pid == pid) {
             sz = i;
             break;
          }
@@ -83,9 +81,8 @@ int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
    }
 
    mp->tlbcache[sz].pid = pid;
-   mp->tlbcache[sz].addr = addr;
+   mp->tlbcache[sz].val = value;
    mp->tlbcache[sz].pgn = pgnum;
-   TLBMEMPHY_write(mp, addr, value);
 
    if(sz == mp->tlbnum)  
    {
@@ -146,10 +143,10 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
    file = fopen("TLB_status.txt", "w");
    fprintf(file, "Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
-   for(int i=0;i<mp->maxsz;++i)
+   for(int i=0;i<mp->tlbnum;++i)
    {
-      if(mp->storage[i]!='\0')
-	   fprintf(file, "[%d, %d] ",i, (int) mp->storage[i]);
+      if(mp->tlbcache[i].val!=-1)
+	   fprintf(file, "[%d, %d] ",i, (int) mp->tlbcache[i].val);
    }
 
    fprintf(file, "\n\n");
@@ -157,10 +154,10 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
 #else
    printf("Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
-   for(int i=0;i<mp->maxsz;++i)
+   for(int i=0;i<mp->tlbnum;++i)
    {
-      if(mp->storage[i]!='\0')
-	   printf("[%d, %d] ",i, (int) mp->storage[i]);
+      if(mp->tlbcache[i].val!=-1)
+	   printf("[%d, %d] ",i, (int) mp->tlbcache[i].val);
    }
 
    printf("\n");
@@ -177,10 +174,10 @@ int init_tlbmemphy(struct memphy_struct *mp, int max_size)
    mp->storage = (BYTE *)malloc(max_size*sizeof(BYTE));
    mp->maxsz = max_size;
 
-   for(int i=0;i<max_size;++i) mp->storage[i]='\0';
 
    mp->tlbcache = (struct tlbEntry *)malloc(max_size*sizeof(struct tlbEntry));
    mp->tlbnum = 0;
+   for(int i=0;i<max_size;++i) mp->tlbcache[i].val=-1;
 
    mp->rdmflg = 1;
 
