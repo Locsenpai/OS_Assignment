@@ -455,14 +455,32 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
 int find_victim_page(struct mm_struct *mm, int *retpgn) 
 {
   struct pgn_t *pg = mm->fifo_pgn;
-  *retpgn =pg->pgn;
-  mm->fifo_pgn = mm->fifo_pgn->pg_next;
-  /* TODO: Implement the theorical mechanism to find the victim page */
+  struct pgn_t *pg_prev = NULL;
 
-  free(pg);
+  /* TODO: Implement the theorical mechanism to find the victim page */
+  if (pg == NULL){
+    *retpgn = -1;
+    return -1;
+  }
+  
+  while(pg->pg_next != NULL){
+    pg_prev = pg;
+    pg = pg->pg_next;
+  }
+
+  if(pg_prev == NULL){
+    mm->fifo_pgn = NULL;
+  }
+  else{
+    pg_prev->pg_next = NULL;
+  }
+
+  *retpgn = pg->pgn;
+	free(pg);
 
   return 0;
 }
+
 
 /*get_free_vmrg_area - get a free vm region
  *@caller: caller
