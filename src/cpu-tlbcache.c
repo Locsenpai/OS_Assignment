@@ -142,9 +142,9 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
    file = fopen("TLB_status.txt", "w");
    fprintf(file, "Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
-   for(int i=0;i<mp->tlbnum;++i)
+   for(int i=0;i<mp->maxsz;++i)
    {
-      if(i % 10 == 0) fprintf(file,"\n");
+      if(mp->storage[i]!='\0')
 	   fprintf(file, "[%d, %d] ",i, (int) mp->storage[i]);
    }
 
@@ -153,10 +153,10 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
 #else
    printf("Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
-   for(int i=0;i<mp->tlbnum;++i)
+   for(int i=0;i<mp->maxsz;++i)
    {
-      if(i% 10 == 0) printf("\n");
-	   printf("[%d %d] ",i, (int) mp->storage[i]);
+      if(mp->storage[i]!='\0')
+	   printf("[%d, %d] ",i, (int) mp->storage[i]);
    }
 
    printf("\n");
@@ -172,6 +172,8 @@ int init_tlbmemphy(struct memphy_struct *mp, int max_size)
 {
    mp->storage = (BYTE *)malloc(max_size*sizeof(BYTE));
    mp->maxsz = max_size;
+
+   for(int i=0;i<max_size;++i) mp->storage[i]='\0';
 
    mp->tlbcache = (struct tlbEntry *)malloc(max_size*sizeof(struct tlbEntry));
    mp->tlbnum = 0;
