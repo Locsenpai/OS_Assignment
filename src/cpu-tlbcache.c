@@ -143,15 +143,21 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
    fprintf(file, "Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
    for(int i=0;i<mp->tlbnum;++i)
-	  fprintf(file, "[%d, %02X] ",i, mp->storage[i]);
+   {
+      if(i % 32 == 0) fprintf(file,"\n");
+	   fprintf(file, "[%d, %02X] ",i, mp->storage[i]);
+   }
 
    fprintf(file, "\n\n");
    fclose(file);
 #else
    printf("Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
-   for(int i=0;i<mp->maxsz;++i)
-	  printf("%d %02X ",i, mp->storage[i]);
+   for(int i=0;i<mp->tlbnum;++i)
+   {
+      if(i% 32 == 0) printf("\n");
+	   printf("%d %02X ",i, mp->storage[i]);
+   }
 
    printf("\n");
 #endif

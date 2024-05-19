@@ -165,54 +165,30 @@ int MEMPHY_dump(struct memphy_struct *mp)
     */
    // TODO: DONE
 
-   //pthread_mutex_lock(&lock_mem);
-   /*
-     if (mp->rdmflg == 1) {
-       for (int i = 0; i<mp->maxsz; ++i) {
-         if (i%256 == 0) printf("\n\t\tFrame %d", PAGING_PAGE_ALIGNSZ(i)/PAGING_PAGESZ);
-         if (i%32 == 0) printf("\n");
-         printf("%d ", (int)(mp->storage[i]));
-         if (i == mp->maxsz - 1) printf("\n");
-       }
-     } else {
-       // do nothing
-     }
-    */
+#ifdef DUMP_TO_FILE
+   FILE* file;
    file = fopen("RAM_status.txt", "w");
-   struct framephy_struct *frameit = mp->used_fp_list;
-   while (frameit != NULL)
+   fprintf(file, "Memory content [pos, content] at: %p\n",mp);
+   // Display the content of the memory
+   for(int i=0;i<mp->maxsz;++i)
    {
-#ifdef DUMP_TO_FILE
-      fprintf(file, "\t\t Frame %08x", frameit->fpn);
-#else
-      printf("\t\t Frame %d", frameit->fpn);
-#endif
-      for (int off = 0; off < PAGING_PAGESZ; ++off)
-      {
-         if (off % 32 == 0)
-         {
-#ifdef DUMP_TO_FILE
-            fprintf(file, "\n");
-#else
-            printf("\n");
-#endif
-         }
-#ifdef DUMP_TO_FILE
-         fprintf(file, "%d ", mp->storage[frameit->fpn * PAGING_PAGESZ + off]);
-#else
-         printf("%d ", mp->storage[frameit->fpn * PAGING_PAGESZ + off]);
-#endif
-      }
-#ifdef DUMP_TO_FILE
-      fprintf(file, "\n");
-#else
-      printf("\n");
-#endif
-      frameit = frameit->fp_next;
+      if(i % 10 == 0) fprintf(file,"\n");
+	   fprintf(file, "[%d, %02X] ",i, mp->storage[i]);
    }
 
+   fprintf(file, "\n");
    fclose(file);
-   //pthread_mutex_unlock(&lock_mem);
+#else
+   printf("Memory content [pos, content] at: %p\n",mp);
+   // Display the content of the memory
+   for(int i=0;i<mp->maxsz;++i)
+   {
+      if(i% 10 == 0) printf("\n");
+	   printf("%d %02X ",i, mp->storage[i]);
+   }
+
+   printf("\n");
+#endif
    return 0;
 }
 
