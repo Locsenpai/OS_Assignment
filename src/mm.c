@@ -7,6 +7,7 @@
 #include "mm.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 /* 
  * init_pte - Initialize PTE entry
@@ -394,7 +395,7 @@ int print_pgtbl(struct pcb_t *caller, uint32_t start, uint32_t end)
 	{
 		 printf("%08ld: %08x\n", pgit * sizeof(uint32_t), caller->mm->pgd[pgit]);
 	}
-
+	usleep(10);
 	return 0;
 }
 

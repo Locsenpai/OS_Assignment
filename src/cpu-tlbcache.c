@@ -122,20 +122,29 @@ int TLBMEMPHY_write(struct memphy_struct * mp, int addr, BYTE data)
  *  @mp: memphy struct
  */
 
-
 int TLBMEMPHY_dump(struct memphy_struct * mp)
 {
    /*TODO dump memphy contnt mp->storage 
 	*     for tracing the memory content
 	*/
-	/////////CHECK LATER//////////////
    if(mp==NULL) return -1;
+#ifdef DUMP_TO_FILE
+   FILE* file;
+   file = fopen("TLB_status.txt", "w");
+   fprintf(file, "Memory content [pos, content] at: %p\n",mp);
+   // Display the content of the memory
+   for(int i=0;i<mp->maxsz;++i)
+	  fprintf(file, "%d %02X ",i, mp->storage[i]);
+
+   fprintf(file, "\n");
+#else
    printf("Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
    for(int i=0;i<mp->maxsz;++i)
 	  printf("%d %02X ",i, mp->storage[i]);
 
    printf("\n");
+#endif
    return 0;
 }
 
