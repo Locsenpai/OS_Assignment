@@ -173,7 +173,7 @@ int MEMPHY_dump(struct memphy_struct *mp)
    for(int i=0;i<mp->maxsz;++i)
    {
       if(i % 10 == 0) fprintf(file,"\n");
-	   fprintf(file, "[%d, %02X] ",i, mp->storage[i]);
+	   fprintf(file, "[%d, %d] ",i, (int) mp->storage[i]);
    }
 
    fprintf(file, "\n");
@@ -184,7 +184,7 @@ int MEMPHY_dump(struct memphy_struct *mp)
    for(int i=0;i<mp->maxsz;++i)
    {
       if(i% 10 == 0) printf("\n");
-	   printf("%d %02X ",i, mp->storage[i]);
+	   printf("[%d %d] ",i, (int) mp->storage[i]);
    }
 
    printf("\n");

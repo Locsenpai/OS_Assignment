@@ -144,8 +144,8 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
    // Display the content of the memory
    for(int i=0;i<mp->tlbnum;++i)
    {
-      if(i % 32 == 0) fprintf(file,"\n");
-	   fprintf(file, "[%d, %02X] ",i, mp->storage[i]);
+      if(i % 10 == 0) fprintf(file,"\n");
+	   fprintf(file, "[%d, %d] ",i, (int) mp->storage[i]);
    }
 
    fprintf(file, "\n\n");
@@ -155,8 +155,8 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
    // Display the content of the memory
    for(int i=0;i<mp->tlbnum;++i)
    {
-      if(i% 32 == 0) printf("\n");
-	   printf("%d %02X ",i, mp->storage[i]);
+      if(i% 10 == 0) printf("\n");
+	   printf("[%d %d] ",i, (int) mp->storage[i]);
    }
 
    printf("\n");
