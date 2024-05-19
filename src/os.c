@@ -124,7 +124,7 @@ static void * ld_routine(void * args) {
 		while (current_time() < ld_processes.start_time[i]) {
 			next_slot(timer_id);
 		}
-		usleep(10);
+		usleep(100);
 #ifdef CPU_TLB
 		proc->tlb = &tlb;
 #endif

@@ -395,7 +395,7 @@ int print_pgtbl(struct pcb_t *caller, uint32_t start, uint32_t end)
 	{
 		 printf("%08ld: %08x\n", pgit * sizeof(uint32_t), caller->mm->pgd[pgit]);
 	}
-	usleep(10);
+	usleep(100);
 	return 0;
 }
 
