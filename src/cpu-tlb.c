@@ -38,7 +38,7 @@ int tlb_flush_tlb_of(struct pcb_t *proc, struct memphy_struct * mp)
       //mp->tlbcache[i] = NULL;
       mp->tlbcache[i].pid = -1;
       mp->tlbcache[i].pgn = -1;
-      mp->tlbcache[i].addr = -1;
+      mp->tlbcache[i].val = -1;
     }
   }
   mp->tlbnum = 0;
@@ -65,7 +65,7 @@ int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
     uint32_t page_start = addr / PAGE_SIZE;
     for (uint32_t i = 0; i < num_pages; i++) 
     {
-        tlb_cache_write(proc->tlb, proc->pid, page_start + i, '\0');
+        tlb_cache_write(proc->tlb, proc->pid, page_start + i, -1);
     }
   }
   return val;

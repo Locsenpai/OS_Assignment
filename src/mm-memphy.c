@@ -172,7 +172,7 @@ int MEMPHY_dump(struct memphy_struct *mp)
    // Display the content of the memory
    for(int i=0;i<mp->maxsz;++i)
    {
-      if(mp->storage[i]!='\0')
+      if(mp->storage[i]!=-1)
 	   fprintf(file, "[%d, %d] ",i, (int) mp->storage[i]);
    }
 
@@ -183,7 +183,7 @@ int MEMPHY_dump(struct memphy_struct *mp)
    // Display the content of the memory
    for(int i=0;i<mp->maxsz;++i)
    {
-      if(mp->storage[i]!='\0')
+      if(mp->storage[i]!=-1)
 	   printf("[%d, %d] ",i, (int) mp->storage[i]);
    }
 
@@ -213,7 +213,7 @@ int init_memphy(struct memphy_struct *mp, int max_size, int randomflg)
    mp->storage = (BYTE *)malloc(max_size * sizeof(BYTE));
    mp->maxsz = max_size;
    
-   for(int i=0;i<max_size;++i) mp->storage[i]='\0';
+   for(int i=0;i<max_size;++i) mp->storage[i]=-1;
 
    MEMPHY_format(mp, PAGING_PAGESZ);
 
