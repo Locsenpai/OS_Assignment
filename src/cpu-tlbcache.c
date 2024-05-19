@@ -87,7 +87,11 @@ int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
    mp->tlbcache[sz].pgn = pgnum;
    TLBMEMPHY_write(mp, addr, value);
 
-   if(sz == mp->tlbnum)  ++mp->tlbnum;
+   if(sz == mp->tlbnum)  
+   {
+      ++mp->tlbnum;
+      return 1;
+   }
    return 0;
 }
 
