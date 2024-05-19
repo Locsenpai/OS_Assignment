@@ -338,7 +338,8 @@ int pgwrite(
 		uint32_t destination, // Index of destination register
 		uint32_t offset)
 {
-  usleep(10);
+  int val = __write(proc, 0, destination, offset, data);
+  usleep(100);
 #ifdef IODUMP
   printf("write region=%d offset=%d value=%d\n", destination, offset, data);
 #ifdef PAGETBL_DUMP
@@ -347,7 +348,7 @@ int pgwrite(
   MEMPHY_dump(proc->mram);
 #endif
 
-  return __write(proc, 0, destination, offset, data);
+  return val;
 }
 
 
