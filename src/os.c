@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 static int time_slot;
 static int num_cpus;
@@ -123,6 +124,7 @@ static void * ld_routine(void * args) {
 		while (current_time() < ld_processes.start_time[i]) {
 			next_slot(timer_id);
 		}
+		usleep(100);
 #ifdef CPU_TLB
 		proc->tlb = &tlb;
 #endif
