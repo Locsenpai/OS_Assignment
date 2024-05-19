@@ -42,7 +42,7 @@ int tlb_cache_read(struct memphy_struct *mp, int pid, int pgnum, BYTE *value)
    int i;
 
    // Tìm kiếm trong cache
-   for (i = 0; i < mp->tlbnum; i++) {
+   for (i = 0; i < mp->maxsz; i++) {
       if(mp->tlbcache) {
          if (mp->tlbcache[i].pgn == pgnum && mp->tlbcache[i].pid == pid && mp->tlbcache[i].addr == addr) {
             if(TLBMEMPHY_read(mp, mp->tlbcache[i].addr, value) == 0) return 0;
@@ -73,7 +73,7 @@ int tlb_cache_write(struct memphy_struct *mp, int pid, int pgnum, BYTE value)
    int sz = mp->tlbnum;
    int i=0;
 
-   for(i = 0; i<mp->tlbnum;++i){
+   for(i = 0; i<mp->maxsz;++i){
       if(mp->tlbcache) {
          if (mp->tlbcache[i].pgn == pgnum && mp->tlbcache[i].pid == pid && mp->tlbcache[i].addr == addr) {
             sz = i;
