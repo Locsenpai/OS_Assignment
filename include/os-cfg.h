@@ -7,10 +7,11 @@
 #define CPU_TLB
 #define CPUTLB_FIXED_TLBSZ
 #define MM_PAGING
-#define MM_FIXED_MEMSZ
+#undef MM_FIXED_MEMSZ
 //#define VMDBG 1
 //#define MMDBG 1
 #define IODUMP 1
 #define PAGETBL_DUMP 1
+#define DUMP_TO_FILE
 
 #endif
