@@ -65,7 +65,7 @@ int tlballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
     uint32_t page_start = addr / PAGE_SIZE;
     for (uint32_t i = 0; i < num_pages; i++) 
     {
-        tlb_cache_write(proc->tlb, proc->pid, page_start + i, -1);
+        tlb_cache_write(proc->tlb, proc->pid, page_start + i, 0);
     }
   }
   return val;
@@ -90,7 +90,7 @@ int tlbfree_data(struct pcb_t *proc, uint32_t reg_index)
 
   for (uint32_t page = start_page; page < end_page; page++) 
   {
-    tlb_cache_write(proc->tlb, proc->pid, page, 0);
+    tlb_cache_write(proc->tlb, proc->pid, page, -1);
   }
 
   int val = __free(proc, 0, reg_index);
