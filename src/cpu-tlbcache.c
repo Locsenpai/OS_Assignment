@@ -141,7 +141,7 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
 #ifdef DUMP_TO_FILE
    FILE* file;
    file = fopen("TLB_status.txt", "w");
-   fprintf(file, "Memory content [pos, content] at: %p\n",mp);
+   fprintf(file, "TLB Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
    for(int i=0;i<mp->tlbnum;++i)
    {
@@ -152,7 +152,7 @@ int TLBMEMPHY_dump(struct memphy_struct * mp)
    fprintf(file, "\n\n");
    fclose(file);
 #else
-   printf("Memory content [pos, content] at: %p\n",mp);
+   printf("TLB Memory content [pos, content] at: %p\n",mp);
    // Display the content of the memory
    for(int i=0;i<mp->tlbnum;++i)
    {
