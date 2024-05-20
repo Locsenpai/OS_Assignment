@@ -12,6 +12,6 @@
 //#define MMDBG 1
 #define IODUMP 1
 #define PAGETBL_DUMP 1
-#undef DUMP_TO_FILE
+#define DUMP_TO_FILE
 
 #endif
