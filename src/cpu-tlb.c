@@ -133,9 +133,20 @@ int tlbread(struct pcb_t * proc, uint32_t source,
   print_pgtbl(proc, 0, -1); //print max TBL
 #endif
   TLBMEMPHY_dump(proc->tlb);
+  MEMPHY_dump(proc->mram);
 #endif
   if(frmnum >= 0) return 0;
+  int size_rg = proc->mm->symrgtbl[source].rg_end - proc->mm->symrgtbl[source].rg_start;
 
+	if (offset > size_rg)
+	{
+		printf("Invalid Reading: region of %d range from %ld to %ld but you read at %ld\n",
+			   source,
+			   proc->mm->symrgtbl[source].rg_start,
+			   proc->mm->symrgtbl[source].rg_end,
+			   proc->mm->symrgtbl[source].rg_start + offset);
+		return -1;
+	}
   int val = __read(proc, 0, source, offset, &data);
 
   destination = (uint32_t) data;
@@ -167,6 +178,17 @@ int tlbwrite(struct pcb_t * proc, BYTE data, uint32_t destination, uint32_t offs
   /* by using tlb_cache_read()/tlb_cache_write()
   frmnum is return value of tlb_cache_read/write value*/
   frmnum = tlb_cache_read(proc->tlb, proc->pid, destination + offset, &data);
+  int size_rg = proc->mm->symrgtbl[destination].rg_end - proc->mm->symrgtbl[destination].rg_start;
+
+	if (offset > size_rg)
+	{
+		printf("Invalid Writing: region of %d range from %ld to %ld but you write at %ld\n",
+			   destination,
+			   proc->mm->symrgtbl[destination].rg_start,
+			   proc->mm->symrgtbl[destination].rg_end,
+			   proc->mm->symrgtbl[destination].rg_start + offset);
+		return -1;
+	}
   val = __write(proc, 0, destination, offset, data);
 
   /* TODO update TLB CACHED with frame num of recent accessing page(s)*/
@@ -184,6 +206,7 @@ int tlbwrite(struct pcb_t * proc, BYTE data, uint32_t destination, uint32_t offs
   print_pgtbl(proc, 0, -1); //print max TBL
 #endif
   TLBMEMPHY_dump(proc->tlb);
+  MEMPHY_dump(proc->mram);
 #endif
   return val;
 }

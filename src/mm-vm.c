@@ -293,6 +293,17 @@ int pgread(
 		uint32_t offset, // Source address = [source] + [offset]
 		uint32_t destination) 
 {
+  int size_rg = proc->mm->symrgtbl[source].rg_end - proc->mm->symrgtbl[source].rg_start;
+
+	if (offset > size_rg)
+	{
+		printf("Invalid Reading: region of %d range from %ld to %ld but you read at %ld\n",
+			   source,
+			   proc->mm->symrgtbl[source].rg_start,
+			   proc->mm->symrgtbl[source].rg_end,
+			   proc->mm->symrgtbl[source].rg_start + offset);
+		return -1;
+	}
   BYTE data;
   int val = __read(proc, 0, source, offset, &data);
 
@@ -338,6 +349,17 @@ int pgwrite(
 		uint32_t destination, // Index of destination register
 		uint32_t offset)
 {
+  int size_rg = proc->mm->symrgtbl[destination].rg_end - proc->mm->symrgtbl[destination].rg_start;
+
+	if (offset > size_rg)
+	{
+		printf("Invalid Writing: region of %d range from %ld to %ld but you write at %ld\n",
+			   destination,
+			   proc->mm->symrgtbl[destination].rg_start,
+			   proc->mm->symrgtbl[destination].rg_end,
+			   proc->mm->symrgtbl[destination].rg_start + offset);
+		return -1;
+	}
   int val = __write(proc, 0, destination, offset, data);
   usleep(100);
 #ifdef IODUMP
