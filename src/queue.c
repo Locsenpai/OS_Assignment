@@ -18,23 +18,12 @@ struct pcb_t * dequeue(struct queue_t * q) {
         /* TODO: return a pcb whose prioprity is the highest
          * in the queue [q] and remember to remove it from q
          * */
-	if (q->size == 0) {
-                return NULL;
+	if(q->size == 0) return NULL;
+        struct pcb_t *max_prio_proc = q->proc[0];
+        for(int i = 1; i < q->size; i++) {
+        	q->proc[i-1] = q->proc[i]; 
         }
-        int max_priority = q->proc[0]->prio;
-        int max_idx = 0;
-        for (int i = 1; i < q->size; i++) {
-                if (q->proc[i]->prio > max_priority) {
-                max_priority = q->proc[i]->prio;
-                max_idx = i;
-                }
-        }
-        struct pcb_t* temp_proc = q->proc[max_idx];
-        for (int i = max_idx; i < q->size - 1; i++) {
-                q->proc[i] = q->proc[i + 1];
-        }
-        q->proc[q->size - 1] = NULL;
         q->size--;
-        return temp_proc;
+	return max_prio_proc;
 }
 
