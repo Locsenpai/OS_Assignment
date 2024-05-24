@@ -168,7 +168,8 @@ int tlbwrite(struct pcb_t * proc, BYTE data, uint32_t destination, uint32_t offs
   /* TODO retrieve TLB CACHED frame num of accessing page(s))*/
   /* by using tlb_cache_read()/tlb_cache_write()
   frmnum is return value of tlb_cache_read/write value*/
-  frmnum = tlb_cache_read(proc->tlb, proc->pid, destination + offset, &data);
+  int pgn = PAGING_PGN((proc->regs[destination] + offset));
+  frmnum = tlb_cache_read(proc->tlb, proc->pid, pgn, &data);
   int size_rg = proc->mm->symrgtbl[destination].rg_end - proc->mm->symrgtbl[destination].rg_start;
 
 	if (offset > size_rg)
