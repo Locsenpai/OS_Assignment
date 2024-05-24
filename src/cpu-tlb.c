@@ -17,15 +17,6 @@
 #include <unistd.h>
 #ifdef CPU_TLB
 
-/*int tlb_change_all_page_tables_of(struct pcb_t *proc,  struct memphy_struct * mp)
-{
-  /* TODO update all page table directory info 
-   *      in flush or wipe TLB (if needed)
-  */
-  /*tlb_flush_tlb_of(proc, mp);
-  return 0;
-}*/
-
 int tlb_flush_tlb_of(struct pcb_t *proc, struct memphy_struct * mp)
 {
   /* TODO flush tlb cached*/
