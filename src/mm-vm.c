@@ -181,38 +181,65 @@ int pgfree_data(struct pcb_t *proc, uint32_t reg_index)
 int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 {
   uint32_t pte = mm->pgd[pgn];
-  
-  if (!PAGING_PAGE_PRESENT(pte))
+
+  if (PAGING_PAGE_PRESENT(pte))
   { /* Page is not online, make it actively living */
-    int vicpgn, swpfpn; 
-    //int vicfpn;
-    //uint32_t vicpte;
+    int vicpgn, swpfpn;
+    int vicfpn;
+    uint32_t vicpte;
 
-    int tgtfpn = PAGING_SWP(pte);//the target frame storing our variable
+    int tgtfpn = GETVAL(pte, PAGING_PTE_SWPOFF_MASK, PAGING_SWPFPN_OFFSET);
 
-    /* TODO: Play with your paging theory here */
-    /* Find victim page */
-    find_victim_page(caller->mm, &vicpgn);
-    /* Get free frame in MEMSWP */
-    MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
+    // Find free frame in RAM
+    if (MEMPHY_get_freefp(caller->mram, &swpfpn) == 0) {
+      __swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, swpfpn);
 
-    /* Do swap frame from MEMRAM to MEMSWP and vice versa*/
-    /* Copy victim frame to swap */
-    //__swap_cp_page();
-    /* Copy target frame from swap to mem */
-    //__swap_cp_page();
+      pte_set_fpn(&caller->mm->pgd[pgn], tgtfpn);
 
-    /* Update page table */
-    //pte_set_swap() &mm->pgd;
+      struct framephy_struct *fp = caller->mram->used_fp_list;
+      struct framephy_struct *newnode = malloc(sizeof(struct framephy_struct));
 
-    /* Update its online status of the target page */
-    //pte_set_fpn() & mm->pgd[pgn];
-    pte_set_fpn(&pte, tgtfpn);
+      /* Create new node with value fpn */
+      newnode->fpn = swpfpn;
+      newnode->fp_next = fp;
+      caller->mram->used_fp_list = newnode;
+    }
+    else {
 
-    enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
+      /* TODO: Play with your paging theory here */
+      /* Find victim page */
+      if (find_victim_page(caller->mm, &vicpgn) != 0) {
+        printf("ERROR: Cannot find vitim page  -  pg_getpage()\n");
+        return -1;
+      }
+
+      /* Get free frame in MEMSWP */
+      if (MEMPHY_get_freefp(caller->active_mswp, &swpfpn) != 0) {
+        printf("ERROR: Cannot find free frame in RAM  -  pg_getpage\n");
+        return -1;
+      }
+
+      vicpte = caller->mm->pgd[vicpgn];  // victim pte from victim page number
+      vicfpn = GETVAL(vicpte, PAGING_PTE_FPN_MASK, 0);
+      
+
+      /* Do swap frame from MEMRAM to MEMSWP and vice versa */
+      /* Copy victim frame to swap */
+      __swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
+      /* Copy target frame from swap to mem */
+      __swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, vicfpn);
+
+      /* Update page table */
+      pte_set_swap(&caller->mm->pgd[vicpgn], 0, swpfpn);
+
+      /* Update its online status of the target page */
+      pte_set_fpn(&caller->mm->pgd[pgn], vicfpn);
+
+      enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
+    }
   }
 
-  *fpn = PAGING_FPN(pte);
+  *fpn = GETVAL(mm->pgd[pgn], PAGING_PTE_FPN_MASK, 0);
 
   return 0;
 }
@@ -331,12 +358,16 @@ int pgread(
 int __write(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE value)
 {
   struct vm_rg_struct *currg = get_symrg_byid(caller->mm, rgid);
-
+  // printf("region position %d\n", offset);
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
   
   if(currg == NULL || cur_vma == NULL) /* Invalid memory identify */
 	  return -1;
-
+  if(offset == currg->rg_start + offset){
+    printf("Invalid! Region have already had content\n");
+    return -1;
+  }
+  // printf("test offset: %lu \n", (currg->rg_start + offset));
   pg_setval(caller->mm, currg->rg_start + offset, value, caller);
 
   return 0;
