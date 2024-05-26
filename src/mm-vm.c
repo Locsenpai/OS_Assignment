@@ -12,7 +12,22 @@
 #include <unistd.h>
 
 // static pthread_mutex_t mtx_lock;
+// Pair used for storing information of processes
+struct proc {
+    int pid[1000];
+    int offset[1000];
+};
 
+// Function to initialize the proc structure
+void init_proc(struct proc *p) {
+    // Initialize the pid and occupy arrays to some default values
+    // For simplicity, let's initialize them to zero
+    for (int i = 0; i < 1000; i++) {
+        p->pid[i] = 0;
+        p->offset[i] = 0;
+    }
+}
+struct proc p_count;
 /*enlist_vm_freerg_list - add new rg to freerg_list
  *@mm: memory region
  *@rg_elmt: new region
@@ -178,72 +193,60 @@ int pgfree_data(struct pcb_t *proc, uint32_t reg_index)
  *@caller: caller
  *
  */
-int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
-{
-  uint32_t pte = mm->pgd[pgn];
+int pg_getpage(struct mm_struct *mm, int page_num, int *frame_num,
+               struct pcb_t *pcb) {
+  uint32_t page_entry = mm->pgd[page_num];
 
-  if (PAGING_PAGE_PRESENT(pte))
-  { /* Page is not online, make it actively living */
-    int vicpgn, swpfpn;
-    int vicfpn;
-    uint32_t vicpte;
+  if (!PAGING_PAGE_PRESENT(
+          page_entry)) { /* Page is not online, make it actively living */
+    int victim_page_num, swap_frame_num;
+    int victim_frame_num;
+    uint32_t victim_page_entry;
 
-    int tgtfpn = GETVAL(pte, PAGING_PTE_SWPOFF_MASK, PAGING_SWPFPN_OFFSET);
+    int target_frame_num =
+        PAGING_SWP(page_entry); // the target frame storing our variable
+    // int free_frame_num;         // finding free frame in RAM
 
-    // Find free frame in RAM
-    if (MEMPHY_get_freefp(caller->mram, &swpfpn) == 0) {
-      __swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, swpfpn);
+    /* TODO: Play with your paging theory here */
 
-      pte_set_fpn(&caller->mm->pgd[pgn], tgtfpn);
+    /* Find victim page */
+    find_victim_page(pcb->mm, &victim_page_num);
+  
 
-      struct framephy_struct *fp = caller->mram->used_fp_list;
-      struct framephy_struct *newnode = malloc(sizeof(struct framephy_struct));
+    victim_page_entry = pcb->mm->pgd[victim_page_num];
+    victim_frame_num = PAGING_FPN(victim_page_entry);
 
-      /* Create new node with value fpn */
-      newnode->fpn = swpfpn;
-      newnode->fp_next = fp;
-      caller->mram->used_fp_list = newnode;
+    /* Get free frame in MEMSWP */
+    if (MEMPHY_get_freefp(pcb->active_mswp, &swap_frame_num) < 0) {
+      printf("Not enough space in swap\n");
+      return -1;
     }
-    else {
 
-      /* TODO: Play with your paging theory here */
-      /* Find victim page */
-      if (find_victim_page(caller->mm, &vicpgn) != 0) {
-        printf("ERROR: Cannot find vitim page  -  pg_getpage()\n");
-        return -1;
-      }
+    __swap_cp_page(pcb->mram, victim_frame_num, pcb->active_mswp,
+                   swap_frame_num);
 
-      /* Get free frame in MEMSWP */
-      if (MEMPHY_get_freefp(caller->active_mswp, &swpfpn) != 0) {
-        printf("ERROR: Cannot find free frame in RAM  -  pg_getpage\n");
-        return -1;
-      }
+    /* Copy target frame from swap to mem */
+    __swap_cp_page(pcb->active_mswp, target_frame_num, pcb->mram,
+                   victim_frame_num);
 
-      vicpte = caller->mm->pgd[vicpgn];  // victim pte from victim page number
-      vicfpn = GETVAL(vicpte, PAGING_PTE_FPN_MASK, 0);
-      
+    MEMPHY_put_freefp(pcb->active_mswp, target_frame_num);
 
-      /* Do swap frame from MEMRAM to MEMSWP and vice versa */
-      /* Copy victim frame to swap */
-      __swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
-      /* Copy target frame from swap to mem */
-      __swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, vicfpn);
+    /* Update page table */
+    pte_set_swap(&pcb->mm->pgd[victim_page_num], 0, swap_frame_num);
+    pte_set_fpn(&mm->pgd[page_num], victim_frame_num);
 
-      /* Update page table */
-      pte_set_swap(&caller->mm->pgd[vicpgn], 0, swpfpn);
+#ifdef CPU_TLB
+    /* Update its online status of TLB (if needed) */
+#endif
 
-      /* Update its online status of the target page */
-      pte_set_fpn(&caller->mm->pgd[pgn], vicfpn);
-
-      enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
-    }
+    enlist_pgn_node(&pcb->mm->fifo_pgn, page_num);
+    
+    //return 0;
   }
 
-  *fpn = GETVAL(mm->pgd[pgn], PAGING_PTE_FPN_MASK, 0);
-
+  *frame_num = PAGING_FPN(page_entry);
   return 0;
 }
-
 /*pg_getval - read value at given offset
  *@mm: memory region
  *@addr: virtual address to acess 
@@ -358,18 +361,38 @@ int pgread(
 int __write(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE value)
 {
   struct vm_rg_struct *currg = get_symrg_byid(caller->mm, rgid);
-  // printf("region position %d\n", offset);
+  currg->rg_start = 0;
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
-  
+  for(int x = 0; x < 1000; x++){
+      if(p_count.pid[x] == 0 && p_count.offset[x] == 0){
+        p_count.pid[x] = caller->pid;
+        p_count.offset[x] = currg->rg_start + offset;
+        pg_setval(caller->mm, currg->rg_start + offset, value, caller);
+        break;
+      }
+      else if (p_count.pid[x] == caller->pid && p_count.offset[x] == currg->rg_start + offset){
+        pg_setval(caller->mm, currg->rg_start + offset, value, caller);
+        break;
+      }
+      else if (p_count.pid[x] != caller->pid && p_count.offset[x] == currg->rg_start + offset){
+        printf("process has been occupied!\n");
+        break;
+      }
+      else if (p_count.pid[x] != caller->pid && p_count.offset[x] != currg->rg_start + offset){
+        continue;
+      }
+  }
+  // for (int i = 0; i < 10; i++){
+  //   printf("[%d, %d] ", p_count.pid[i], p_count.offset[i]);
+  // }
   if(currg == NULL || cur_vma == NULL) /* Invalid memory identify */
 	  return -1;
-  if(offset == currg->rg_start + offset){
-    printf("Invalid! Region have already had content\n");
-    return -1;
-  }
-  // printf("test offset: %lu \n", (currg->rg_start + offset));
-  pg_setval(caller->mm, currg->rg_start + offset, value, caller);
+  // if(offset == currg->rg_start + offset){
+  //   return -1;
+  // }
 
+  // printf("test offset: %lu \n", (temp->rg_start));
+  printf("process in writing: %d \n", caller->pid);
   return 0;
 }
 
@@ -381,7 +404,8 @@ int pgwrite(
 		uint32_t offset)
 {
   int size_rg = proc->mm->symrgtbl[destination].rg_end - proc->mm->symrgtbl[destination].rg_start;
-
+  printf("proccess: %d \n",proc->pid);
+  
 	if (offset > size_rg)
 	{
 		printf("Invalid Writing: region of %d range from %ld to %ld but you write at %ld\n",
@@ -465,12 +489,20 @@ struct vm_rg_struct* get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
 int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int vmaend)
 {
   struct vm_area_struct *vma = caller->mm->mmap;
-  if((vma->vm_start <= vmastart && vma->vm_end >= vmaend)){
-    return 0;
-  }
-  /* TODO validate the planned memory area is not overlapped */
 
-  return -1;
+  /* TODO validate the planned memory area is not overlapped */
+  while(vma!=NULL){
+    if(vmaid != vma->vm_id){
+      // start với end nằm xen kẽ nhau
+      if(OVERLAP(vmastart, vmaend, vma->vm_start, vma->vm_end)){
+        if(vmastart!=vma->vm_end || vmaend!=vma->vm_start){
+          return -1;
+        }
+      }
+    }
+    vma = vma->vm_next;
+  }
+  return 0;
 }
 
 /*inc_vma_limit - increase vm area limits to reserve space for new variable
